@@ -1,0 +1,33 @@
+node{
+    stage("pull the source code from github"){
+        git 'https://github.com/kadiransari/Node-js-automation-by-awscodebuild.git'
+    }
+    stage("buil the docker image"){
+    sh 'docker build -t $JOB_NAME:v1.$BUILD_ID .'
+    sh 'docker tag $JOB_NAME:v1.$BUILD_ID kadiransari7208/$JOB_NAME:v1.$BUILD_ID'
+    sh 'docker tag $JOB_NAME:v1.$BUILD_ID kadiransari7208/$JOB_NAME:latest'
+    
+    }
+    stage ("docker login and push images on git hub"){
+        withCredentials([string(credentialsId: 'dockerhubpassword', variable: 'dockerhubpassword')]) {
+    // some block
+    sh 'docker login -u ansari.abdulkadir.iin@gmail.com -p ${dockerhubpassword}'
+    sh 'docker push kadiransari7208/$JOB_NAME:v1.$BUILD_ID'
+    sh 'docker push kadiransari7208/$JOB_NAME:latest'
+    sh 'docker rmi $JOB_NAME:v1.$BUILD_ID kadiransari7208/$JOB_NAME:v1.$BUILD_ID kadiransari7208/$JOB_NAME:latest'
+}
+        
+    }
+    stage("docker container host on docker machine"){
+        def dockerrun = 'docker run -p 3000:3000 -d --name cloudkedge kadiransari7208/cloudknowledge-pipeline:latest'
+        def dockerrm = 'docker rm -f cloudkedge'
+        
+        sshagent(['dockerhost']) {
+    // some block
+    sh "ssh -o StrictHostKeyChecking=no ec2-user@172.31.38.2  ${dockerrm}"
+    sh "ssh -o StrictHostKeyChecking=no ec2-user@172.31.38.2  ${dockerrun}"
+    
+}
+    }
+    
+}
